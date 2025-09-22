@@ -1,0 +1,20 @@
+{
+  "id": "faith-foundations-7",
+  "title": "Foundations of Faith",
+  "theme": "Faith",
+  "description": "Explore the biblical foundations of faith through key passages that have strengthened believers for generations.",
+  "duration": 7,
+  "studyStyle": "devotional",
+  "difficulty": "beginner",
+  "audience": "individual",
+  "studyStructure": "daily",
+  "estimatedTimePerSession": "10-15 minutes",
+  "pastorMessage": "This study is perfect for anyone wanting to deepen their understanding of what it means to have faith in God. Each day builds upon the previous, creating a strong foundation for your spiritual journey.",
+  "generatedBy": "Hybrid",
+  "generationPrompt": "Create a 7-day study on the foundations of faith using key Bible passages",
+  "popularity": 8.7,
+  "tags": ["faith", "beginner", "foundational", "daily devotional", "spiritual growth"],
+  "status": "Published",
+  "createdDate": "2024-01-10",
+  "lastModified": "2024-01-12"
+}

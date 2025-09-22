@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(sudo chown:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(brew:*)",
+      "Bash(openssl rand:*)",
+      "Read(//Applications/**)",
+      "Bash(docker:*)",
+      "Bash(chmod:*)",
+      "Bash(node:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Read(//usr/local/**)",
+      "Read(//Library/**)",
+      "Bash(export:*)",
+      "Bash(psql:*)",
+      "Bash(PGPASSWORD=password psql:*)",
+      "Bash(PGPASSWORD:*)",
+      "Bash(PGPASSWORD='Rockyb!234w1' psql:*)",
+      "Bash(pkill:*)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(break)",
+      "Bash(done)",
+      "Bash(PGPASSWORD='Rockyb!234w1' createdb -h localhost -p 5432 -U postgres illumina_dev)",
+      "Bash(npm run migrate:up:*)",
+      "Bash(npm run seed:studies:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

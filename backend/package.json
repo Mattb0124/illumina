@@ -1,0 +1,39 @@
+{
+  "name": "illumina-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for Illumina application",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "build": "echo 'No build step required for Node.js'",
+    "migrate": "node-pg-migrate",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create",
+    "db:setup": "npm run migrate:up && npm run seed:studies",
+    "db:reset": "npm run migrate:down && npm run migrate:up && npm run seed:studies",
+    "seed:studies": "node scripts/seed-via-http-api.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "gray-matter": "^4.0.3",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "marked": "^16.3.0",
+    "node-pg-migrate": "^8.0.3",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.15.5",
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

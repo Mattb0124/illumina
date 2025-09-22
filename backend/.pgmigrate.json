@@ -1,0 +1,6 @@
+{
+  "database-url": "postgresql://postgres:Rockyb%21234w1@localhost:5432/illumina_dev",
+  "migrations-table": "pgmigrations",
+  "dir": "migrations",
+  "schema": "public"
+}

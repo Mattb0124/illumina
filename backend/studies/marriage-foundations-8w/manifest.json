@@ -1,0 +1,20 @@
+{
+  "id": "marriage-foundations-8w",
+  "title": "Marriage Foundations",
+  "theme": "Marriage",
+  "description": "An 8-week journey to strengthen your marriage through biblical principles, designed for couples to study together.",
+  "duration": 56,
+  "studyStyle": "marriage",
+  "difficulty": "intermediate",
+  "audience": "couples",
+  "studyStructure": "weekly",
+  "estimatedTimePerSession": "20-30 minutes",
+  "pastorMessage": "Marriage is one of God's greatest gifts, designed to reflect His love for us. This study will strengthen your foundation and deepen your unity as you discover God's beautiful design for your relationship.",
+  "generatedBy": "AI",
+  "generationPrompt": "Create an 8-week marriage study focusing on biblical foundations for couples",
+  "popularity": 9.2,
+  "tags": ["marriage", "couples", "biblical foundations", "relationship", "weekly study"],
+  "status": "Published",
+  "createdDate": "2024-01-01",
+  "lastModified": "2024-01-25"
+}
