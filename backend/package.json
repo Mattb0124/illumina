@@ -16,6 +16,10 @@
     "seed:studies": "node scripts/seed-via-http-api.js"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.56",
+    "@langchain/core": "^0.3.77",
+    "@langchain/langgraph": "^0.4.9",
+    "@langchain/openai": "^0.6.13",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -24,8 +28,11 @@
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
     "marked": "^16.3.0",
+    "node-fetch": "^2.7.0",
     "node-pg-migrate": "^8.0.3",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

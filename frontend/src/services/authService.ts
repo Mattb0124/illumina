@@ -99,8 +99,13 @@ class AuthService {
   }
 
   getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('auth_token');
+    if (typeof window === 'undefined') {
+      console.log('  🔐 getToken: window undefined (SSR)');
+      return null;
+    }
+    const token = localStorage.getItem('auth_token');
+    console.log('  🔐 getToken from localStorage:', token ? `${token.substring(0, 20)}...` : 'null');
+    return token;
   }
 
   setToken(token: string): void {

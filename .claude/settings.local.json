@@ -33,7 +33,13 @@
       "Bash(done)",
       "Bash(PGPASSWORD='Rockyb!234w1' createdb -h localhost -p 5432 -U postgres illumina_dev)",
       "Bash(npm run migrate:up:*)",
-      "Bash(npm run seed:studies:*)"
+      "Bash(npm run seed:studies:*)",
+      "WebFetch(domain:langchain-ai.github.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm run migrate:create:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npm run dev:frontend:*)",
+      "Bash(npm run dev:backend:*)"
     ],
     "deny": [],
     "ask": []

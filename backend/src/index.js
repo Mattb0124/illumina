@@ -5,6 +5,7 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const studiesRoutes = require('./routes/studies');
+const aiWorkflowRoutes = require('./routes/aiWorkflow');
 
 // Import database connection
 const { pool } = require('./config/database');
@@ -72,6 +73,7 @@ app.get('/api/health', async (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/studies', studiesRoutes);
+app.use('/api/ai', aiWorkflowRoutes);
 
 // 404 handler
 app.use((req, res) => {
