@@ -2,51 +2,75 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../middleware/auth');
 const { query } = require('../config/database');
-// const { createStudyGenerationWorkflow } = require('../ai-workflow/workflows/studyGenerationWorkflow');
-// const { isAIWorkflowEnabled, logAIConfig } = require('../ai-workflow/utils/config');
+const { AIService } = require('../services/aiService');
 
 const router = express.Router();
 
-// Log AI configuration on startup
-// logAIConfig();
+// Initialize AI service
+const aiService = new AIService();
 
 /**
  * POST /api/ai/generate-study
  * Start a new AI study generation workflow
  */
 router.post('/generate-study', authenticateToken, async (req, res) => {
-  try {
-    // Create a realistic mock request ID
-    const mockRequestId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  console.log('🚀 AI Study Generation Request Started');
+  console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+  console.log('👤 User ID:', req.user.id);
 
-    // Extract form data
+  try {
+    // Check if AI service is enabled
+    if (!aiService.isEnabled()) {
+      console.error('❌ AI service is disabled - missing OpenAI API key');
+      return res.status(503).json({
+        success: false,
+        error: 'AI study generation is currently disabled. Please check OpenAI API key configuration.'
+      });
+    }
+
+    // Create a proper UUID for the request
+    const requestId = uuidv4();
+    console.log('🆔 Generated request ID:', requestId);
+
+    // Extract and validate form data
     const { userRequest, title, topic, duration, studyStyle, difficulty, audience, specialRequirements } = req.body;
 
-    // Parse duration to days (reuse the utility function logic)
-    const durationDays = parseDurationToDays(duration);
+    // Validate required fields
+    if (!userRequest || !title || !topic || !duration) {
+      console.error('❌ Missing required fields:', { userRequest: !!userRequest, title: !!title, topic: !!topic, duration: !!duration });
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: userRequest, title, topic, duration'
+      });
+    }
 
-    // Create a mock generation request record in the database
+    // Parse duration to days
+    const durationDays = parseDurationToDays(duration);
+    console.log('📅 Parsed duration:', duration, '->', durationDays, 'days');
+
+    // Create initial generation request record
     const requestDetails = {
-      userRequest: userRequest || 'Mock AI study generation request',
-      title: title || 'AI Generated Study',
-      topic: topic || 'Bible Study',
-      duration: duration || '7 days',
+      userRequest,
+      title,
+      topic,
+      duration,
       studyStyle: studyStyle || 'devotional',
       difficulty: difficulty || 'beginner',
       audience: audience || 'individual',
-      specialRequirements: specialRequirements || 'Mock generation for testing',
+      specialRequirements: specialRequirements || '',
       requestedAt: new Date().toISOString(),
       requestedBy: req.user.id
     };
 
-    // Insert mock request into database
+    console.log('💾 Creating database record...');
+    // Insert request into database
     await query(
       `INSERT INTO study_generation_requests
        (id, user_id, title, topic, duration, duration_days, study_style,
         difficulty, audience, special_requirements, request_details, status, progress_percentage)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
-        mockRequestId,
+        requestId,
         req.user.id,
         requestDetails.title,
         requestDetails.topic,
@@ -57,59 +81,53 @@ router.post('/generate-study', authenticateToken, async (req, res) => {
         requestDetails.audience,
         requestDetails.specialRequirements,
         JSON.stringify(requestDetails),
-        'processing', // Start in processing state
-        15 // Initial progress
+        'pending', // Start in pending state
+        0 // Initial progress
       ]
     );
 
-    // Insert mock workflow state records to simulate progress
-    const workflowSteps = [
-      { step: 'parse_request', status: 'completed' },
-      { step: 'plan_study', status: 'completed' },
-      { step: 'generate_content', status: 'in_progress' },
-      { step: 'validate_verses', status: 'pending' },
-      { step: 'theological_validation', status: 'pending' }
-    ];
+    console.log('✅ Database record created successfully');
 
-    for (let i = 0; i < workflowSteps.length; i++) {
-      const { step, status } = workflowSteps[i];
-      const now = new Date();
+    // Prepare the AI workflow request
+    const workflowRequest = {
+      requestId,
+      userId: req.user.id,
+      userRequest: requestDetails.userRequest,
+      title: requestDetails.title,
+      topic: requestDetails.topic,
+      duration: requestDetails.duration,
+      durationDays,
+      studyStyle: requestDetails.studyStyle,
+      difficulty: requestDetails.difficulty,
+      audience: requestDetails.audience,
+      specialRequirements: requestDetails.specialRequirements
+    };
 
-      await query(
-        `INSERT INTO workflow_state
-         (request_id, current_step, step_status, started_at, completed_at, step_data)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          mockRequestId,
-          step,
-          status,
-          status !== 'pending' ? now : null,
-          status === 'completed' ? now : null,
-          JSON.stringify({ mock: true, step_description: `Mock ${step} step` })
-        ]
-      );
-    }
+    console.log('🤖 Starting AI workflow...');
+    // Start the AI workflow asynchronously (don't wait for completion)
+    aiService.generateStudy(workflowRequest).catch(error => {
+      console.error('💥 AI Workflow failed:', error);
+      // Error handling is done within the service
+    });
 
-    console.log(`Created mock study generation request: ${mockRequestId}`);
-
+    console.log('📤 Sending success response to client');
+    // Immediately return success response
     return res.json({
       success: true,
       data: {
-        requestId: mockRequestId,
-        status: 'processing',
-        message: 'Mock AI study generation started! This is a demo of the workflow system.',
-        estimatedTime: '2-3 minutes'
+        requestId,
+        status: 'pending',
+        message: 'AI study generation started successfully! Your study is being created.',
+        estimatedTime: estimateGenerationTime(durationDays)
       }
     });
 
-    // Original AI workflow code is commented out during ES module conversion
-    // The mock implementation above handles the request and returns early
-
   } catch (error) {
-    console.error('Error starting study generation:', error);
+    console.error('💥 Error starting study generation:', error);
+    console.error('📊 Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Failed to start study generation'
+      error: 'Failed to start study generation: ' + error.message
     });
   }
 });
@@ -367,26 +385,27 @@ router.delete('/cancel-generation/:requestId', authenticateToken, async (req, re
  */
 router.get('/config-status', authenticateToken, async (req, res) => {
   try {
-    // const isEnabled = isAIWorkflowEnabled();
+    const isEnabled = aiService.isEnabled();
+    console.log('🔧 AI Config Status Check - Enabled:', isEnabled);
 
     res.json({
       success: true,
       data: {
-        enabled: false, // isEnabled,
+        enabled: isEnabled,
         features: {
-          studyGeneration: false, // isEnabled,
+          studyGeneration: isEnabled,
           bibleValidation: true,
-          theologicalValidation: false // isEnabled
+          theologicalValidation: true
         },
         limitations: {
           maxDuration: 365,
-          maxConcurrentGenerations: parseInt(process.env.MAX_CONCURRENT_GENERATIONS) || 3
+          maxConcurrentGenerations: 3
         }
       }
     });
 
   } catch (error) {
-    console.error('Error fetching config status:', error);
+    console.error('💥 Error fetching config status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch configuration status'

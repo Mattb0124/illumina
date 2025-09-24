@@ -30,6 +30,8 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+
     setIsSubmitting(true);
     setError(null);
 
@@ -40,9 +42,15 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
       }
 
       const result = await aiService.generateStudy(formData);
+
+      if (!result || !result.requestId) {
+        throw new Error('Invalid response from server');
+      }
+
       onGenerationStarted(result.requestId);
 
     } catch (error) {
+      console.error('Error in study generation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start study generation');
     } finally {
       setIsSubmitting(false);

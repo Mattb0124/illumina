@@ -22,11 +22,14 @@ const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    // Only log slow queries (>100ms) or in development
+    if (duration > 100 || process.env.NODE_ENV === 'development') {
+      console.log('Executed query', { duration, rows: res.rowCount });
+    }
     return res;
   } catch (error) {
     const duration = Date.now() - start;
-    console.error('Query error', { text, duration, error: error.message });
+    console.error('Query error', { duration, error: error.message });
     throw error;
   }
 };

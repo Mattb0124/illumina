@@ -105,20 +105,10 @@ export interface ApiResponse<T = any> {
 class AIService {
   private getHeaders(): Record<string, string> {
     const token = authService.getToken();
-    console.log('🔐 Frontend Auth Debug:');
-    console.log('  Getting token from authService:', token ? `${token.substring(0, 20)}...` : 'null');
-
-    const headers = {
+    return {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
     };
-
-    console.log('  Headers being sent:', {
-      'Content-Type': headers['Content-Type'],
-      'Authorization': headers.Authorization ? `Bearer ${token?.substring(0, 20)}...` : 'not present'
-    });
-
-    return headers;
   }
 
   /**
@@ -132,6 +122,12 @@ class AIService {
         body: JSON.stringify(request),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI generation API error:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result: ApiResponse = await response.json();
 
       if (!result.success) {
@@ -140,7 +136,7 @@ class AIService {
 
       return result.data;
     } catch (error) {
-      console.error('Error starting study generation:', error);
+      console.error('Error in study generation:', error);
       throw error;
     }
   }
