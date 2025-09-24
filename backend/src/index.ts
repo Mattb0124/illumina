@@ -1,14 +1,16 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const studiesRoutes = require('./routes/studies');
-const aiWorkflowRoutes = require('./routes/aiWorkflow');
+import authRoutes from './routes/auth.js';
+import studiesRoutes from './routes/studies.js';
+import aiWorkflowRoutes from './routes/aiWorkflow.js';
 
 // Import database connection
-const { pool } = require('./config/database');
+import { pool } from './config/database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,14 +21,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
 // Error handling middleware for validation errors
-app.use((error, req, res, next) => {
-  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+  if (error instanceof SyntaxError && (error as any).status === 400 && 'body' in error) {
     return res.status(400).json({
       success: false,
       error: 'Invalid JSON in request body'
@@ -36,7 +38,7 @@ app.use((error, req, res, next) => {
 });
 
 // Routes
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
     message: 'Illumina Backend API is running!',
     version: '1.0.0',
@@ -48,7 +50,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', async (req, res) => {
+app.get('/api/health', async (req: Request, res: Response) => {
   try {
     // Test database connection
     const dbResult = await pool.query('SELECT NOW()');
@@ -57,7 +59,7 @@ app.get('/api/health', async (req, res) => {
       status: 'OK',
       timestamp: new Date().toISOString(),
       database: 'connected',
-      dbTime: dbResult.rows[0].now
+      dbTime: dbResult.rows[0]?.now
     });
   } catch (error) {
     console.error('Health check database error:', error);
@@ -76,7 +78,7 @@ app.use('/api/studies', studiesRoutes);
 app.use('/api/ai', aiWorkflowRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     error: 'Endpoint not found',
@@ -85,7 +87,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
-app.use((error, req, res, next) => {
+const errorHandler: ErrorRequestHandler = (error: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', error);
 
   res.status(500).json({
@@ -96,7 +98,9 @@ app.use((error, req, res, next) => {
       stack: error.stack
     })
   });
-});
+};
+
+app.use(errorHandler);
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

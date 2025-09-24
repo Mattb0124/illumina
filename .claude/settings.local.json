@@ -39,7 +39,14 @@
       "Bash(npm run migrate:create:*)",
       "Bash(xargs kill:*)",
       "Bash(npm run dev:frontend:*)",
-      "Bash(npm run dev:backend:*)"
+      "Bash(npm run dev:backend:*)",
+      "WebFetch(domain:openai.github.io)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(rm:*)",
+      "Bash(npx:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(timeout 10 npm run build)"
     ],
     "deny": [],
     "ask": []

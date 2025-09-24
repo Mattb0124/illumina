@@ -2,20 +2,25 @@
   "name": "illumina-backend",
   "version": "1.0.0",
   "description": "Node.js backend for Illumina application",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "build": "echo 'No build step required for Node.js'",
+    "dev": "nodemon --exec ts-node --esm src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "migrate": "node-pg-migrate",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create",
     "db:setup": "npm run migrate:up && npm run seed:studies",
     "db:reset": "npm run migrate:down && npm run migrate:up && npm run seed:studies",
-    "seed:studies": "node scripts/seed-via-http-api.js"
+    "seed:studies": "node scripts/seed-via-http-api.js",
+    "test:ai": "node scripts/testAIWorkflow.js",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@openai/agents": "^0.1.4",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -24,14 +29,22 @@
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^2.7.0",
     "node-pg-migrate": "^8.0.3",
+    "openai": "^5.23.0",
     "pg": "^8.16.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^8.2.3",
+    "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.5.2",
     "@types/pg": "^8.15.5",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0"
