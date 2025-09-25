@@ -1,8 +1,16 @@
-import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Configure environment FIRST, before any other imports that need env vars
+const result = dotenv.config();
+console.log('🔍 Environment Debug:');
+console.log('  Current working directory:', process.cwd());
+console.log('  dotenv.config() result:', result.error ? `❌ Error: ${result.error}` : '✅ Success');
+console.log('  DATABASE_URL after dotenv:', process.env.DATABASE_URL ? '✅ Loaded' : '❌ Missing');
+
+// Now import everything else (after environment is loaded)
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import cors from 'cors';
+import path from 'path';
 
 // Import routes
 import authRoutes from './routes/auth.js';

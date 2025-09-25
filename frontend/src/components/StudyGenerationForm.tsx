@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { aiService, StudyGenerationRequest } from '@/services/aiService';
+import { aiService, StudyGenerationFormData, parseDurationToDays } from '@/services/aiService';
 
 interface StudyGenerationFormProps {
   onGenerationStarted: (requestId: string) => void;
 }
 
 export default function StudyGenerationForm({ onGenerationStarted }: StudyGenerationFormProps) {
-  const [formData, setFormData] = useState<StudyGenerationRequest>({
+  const [formData, setFormData] = useState<StudyGenerationFormData>({
     userRequest: '',
     title: '',
     topic: '',
@@ -32,28 +32,77 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
 
+    console.log('🚀 Form submission started', { formData });
     setIsSubmitting(true);
     setError(null);
 
     try {
       // Validate required fields
-      if (!formData.userRequest.trim() || !formData.title.trim() || !formData.topic.trim() || !formData.duration.trim()) {
-        throw new Error('Please fill in all required fields');
+      if (!formData.title.trim() || !formData.topic.trim() || !formData.duration.trim()) {
+        const errorMsg = 'Please fill in all required fields (title, topic, duration)';
+        console.error('❌ Validation failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
+      // Validate duration format
+      try {
+        const durationDays = parseDurationToDays(formData.duration);
+        console.log('✅ Duration parsed successfully:', { duration: formData.duration, days: durationDays });
+      } catch (durationError) {
+        console.error('❌ Duration parsing failed:', durationError);
+        throw new Error(durationError instanceof Error ? durationError.message : 'Invalid duration format');
+      }
+
+      console.log('📡 Calling aiService.generateStudy...');
       const result = await aiService.generateStudy(formData);
+      console.log('📡 API Response received:', result);
 
       if (!result || !result.requestId) {
-        throw new Error('Invalid response from server');
+        console.error('❌ Invalid API response structure:', result);
+        throw new Error('Invalid response from server - missing requestId');
       }
 
+      console.log('✅ Valid response with requestId:', result.requestId);
+      console.log('🔄 Calling onGenerationStarted callback...');
+
       onGenerationStarted(result.requestId);
+      console.log('✅ onGenerationStarted callback completed');
 
     } catch (error) {
-      console.error('Error in study generation:', error);
-      setError(error instanceof Error ? error.message : 'Failed to start study generation');
+      console.error('❌ Error in study generation:', error);
+
+      // Provide user-friendly error messages based on error type
+      let userFriendlyMessage = 'An unexpected error occurred. Please try again.';
+
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+
+        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          userFriendlyMessage = 'Unable to connect to our servers. Please check your internet connection and try again.';
+        } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+          userFriendlyMessage = 'Your session has expired. Please refresh the page and login again.';
+        } else if (errorMessage.includes('validation') || errorMessage.includes('invalid')) {
+          userFriendlyMessage = error.message; // Show validation errors as-is
+        } else if (errorMessage.includes('duration')) {
+          userFriendlyMessage = error.message; // Show duration parsing errors as-is
+        } else if (errorMessage.includes('required')) {
+          userFriendlyMessage = error.message; // Show required field errors as-is
+        } else if (errorMessage.includes('server') || errorMessage.includes('500')) {
+          userFriendlyMessage = 'Our servers are experiencing issues. Please try again in a few minutes.';
+        } else if (errorMessage.includes('timeout')) {
+          userFriendlyMessage = 'The request took too long to process. Please try again with a shorter study or check your connection.';
+        } else if (errorMessage.includes('requestid')) {
+          userFriendlyMessage = 'Study generation started but we lost track of it. Please try again or contact support.';
+        } else {
+          // Use the original error message for other cases
+          userFriendlyMessage = error.message;
+        }
+      }
+
+      setError(userFriendlyMessage);
     } finally {
       setIsSubmitting(false);
+      console.log('🏁 Form submission completed');
     }
   };
 
@@ -219,7 +268,6 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
               <option value="devotional">Devotional</option>
               <option value="topical">Topical</option>
               <option value="book-study">Book Study</option>
-              <option value="couples">Couples</option>
               <option value="marriage">Marriage</option>
             </select>
           </div>
@@ -301,13 +349,21 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
         {/* Error Display */}
         {error && (
           <div style={{
-            padding: '1rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: '6px',
-            color: '#DC2626'
+            padding: '1.25rem',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            color: '#dc2626',
+            fontSize: '0.925rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
           }}>
-            {error}
+            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+            <div>
+              <strong>Unable to Generate Study</strong>
+              <div style={{ marginTop: '0.25rem' }}>{error}</div>
+            </div>
           </div>
         )}
 
@@ -320,13 +376,35 @@ export default function StudyGenerationForm({ onGenerationStarted }: StudyGenera
             style={{
               padding: '1rem 2rem',
               fontSize: '1.1rem',
-              minWidth: '200px',
-              opacity: isSubmitting ? 0.7 : 1,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer'
+              minWidth: '220px',
+              opacity: isSubmitting ? 0.8 : 1,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}
           >
-            {isSubmitting ? 'Generating Study...' : 'Generate Study'}
+            {isSubmitting && (
+              <div style={{
+                width: '20px',
+                height: '20px',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderTop: '2px solid white',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            )}
+            {isSubmitting ? 'Creating Study...' : '✨ Generate Study'}
           </button>
+          {isSubmitting && (
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          )}
         </div>
 
         {/* Info Section */}

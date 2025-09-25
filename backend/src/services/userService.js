@@ -1,6 +1,6 @@
-const bcrypt = require('bcryptjs');
-const { query, getClient } = require('../config/database');
-const { generateToken } = require('../middleware/auth');
+import bcrypt from 'bcryptjs';
+import { query, getClient } from '../config/database.ts';
+import { generateToken } from '../middleware/auth.ts';
 
 class UserService {
   /**
@@ -265,4 +265,4 @@ class UserService {
   }
 }
 
-module.exports = new UserService();
+export default new UserService();

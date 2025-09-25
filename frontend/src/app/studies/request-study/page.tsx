@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StudyGenerationForm from '@/components/StudyGenerationForm';
 import GenerationProgress from '@/components/GenerationProgress';
 import GeneratedStudyViewer from '@/components/GeneratedStudyViewer';
@@ -13,9 +13,19 @@ export default function RequestStudyPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [completedStatus, setCompletedStatus] = useState<GenerationStatus | null>(null);
 
+  // Debug state changes
+  useEffect(() => {
+    console.log('📊 State changed:', { currentView, requestId, completedStatus });
+  }, [currentView, requestId, completedStatus]);
+
   const handleGenerationStarted = (newRequestId: string) => {
+    console.log('🎯 handleGenerationStarted called with requestId:', newRequestId);
+    console.log('📋 Current state before update:', { currentView, requestId });
+
     setRequestId(newRequestId);
     setCurrentView('progress');
+
+    console.log('✅ State updated - should now show progress view');
   };
 
   const handleGenerationCompleted = (status: GenerationStatus) => {

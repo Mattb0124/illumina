@@ -2,15 +2,27 @@ import { authService } from './authService';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-export interface StudyGenerationRequest {
+// Form data interface (what user fills in the form)
+export interface StudyGenerationFormData {
   userRequest: string;
   title: string;
   topic: string;
   duration: string;
-  studyStyle?: 'devotional' | 'topical' | 'book-study' | 'couples' | 'marriage';
+  studyStyle?: 'devotional' | 'topical' | 'book-study' | 'marriage';
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   audience?: 'individual' | 'couples' | 'group' | 'family';
   specialRequirements?: string;
+}
+
+// API request interface (what gets sent to backend)
+export interface StudyGenerationRequest {
+  title: string;
+  topic: string;
+  duration_days: number;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  audience?: 'individual' | 'couples' | 'group' | 'family' | 'general';
+  study_style?: 'devotional' | 'topical' | 'book-study' | 'marriage';
+  special_requirements?: string;
 }
 
 export interface GenerationStatus {
@@ -102,6 +114,42 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+/**
+ * Parse duration string to number of days
+ * Supports formats like: "8 weeks", "30 days", "2 months", "1 week", etc.
+ */
+export function parseDurationToDays(duration: string): number {
+  const cleanDuration = duration.trim().toLowerCase();
+
+  // Extract number and unit
+  const match = cleanDuration.match(/^(\d+)\s*(day|days|week|weeks|month|months)s?$/);
+
+  if (!match) {
+    throw new Error(`Invalid duration format: "${duration}". Please use formats like "30 days", "8 weeks", or "2 months".`);
+  }
+
+  const [, numberStr, unit] = match;
+  const number = parseInt(numberStr, 10);
+
+  if (isNaN(number) || number <= 0) {
+    throw new Error(`Invalid duration number: "${numberStr}". Must be a positive integer.`);
+  }
+
+  switch (unit) {
+    case 'day':
+    case 'days':
+      return number;
+    case 'week':
+    case 'weeks':
+      return number * 7;
+    case 'month':
+    case 'months':
+      return number * 30; // Approximate 30 days per month
+    default:
+      throw new Error(`Unsupported duration unit: "${unit}". Supported units: days, weeks, months.`);
+  }
+}
+
 class AIService {
   private getHeaders(): Record<string, string> {
     const token = authService.getToken();
@@ -114,12 +162,25 @@ class AIService {
   /**
    * Start a new study generation request
    */
-  async generateStudy(request: StudyGenerationRequest): Promise<{ requestId: string; status: string; message: string; estimatedTime: string }> {
+  async generateStudy(formData: StudyGenerationFormData): Promise<{ requestId: string; status: string; message: string; estimatedTime: string }> {
     try {
+      // Convert form data to backend API format
+      const apiRequest: StudyGenerationRequest = {
+        title: formData.title,
+        topic: formData.topic,
+        duration_days: parseDurationToDays(formData.duration),
+        difficulty: formData.difficulty,
+        audience: formData.audience,
+        study_style: formData.studyStyle,
+        special_requirements: formData.specialRequirements ?
+          (formData.userRequest ? `${formData.userRequest}\n\n${formData.specialRequirements}` : formData.specialRequirements) :
+          formData.userRequest
+      };
+
       const response = await fetch(`${API_BASE_URL}/ai/generate-study`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify(request),
+        body: JSON.stringify(apiRequest),
       });
 
       if (!response.ok) {

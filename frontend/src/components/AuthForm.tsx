@@ -38,6 +38,9 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
         await authService.login(loginData);
       }
 
+      // Emit auth state changed event for Navigation component
+      window.dispatchEvent(new CustomEvent('auth-state-changed'));
+
       if (onSuccess) {
         onSuccess();
       }

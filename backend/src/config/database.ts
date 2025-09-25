@@ -1,4 +1,13 @@
+import dotenv from 'dotenv';
+// Load environment variables FIRST thing in database module
+dotenv.config();
+
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
+
+// Debug database connection
+console.log('🔧 Database Configuration Debug:');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL);
+console.log('  URL contains encoded character:', process.env.DATABASE_URL?.includes('%21') ? '✅ Yes (%21 found)' : '❌ No (%21 not found)');
 
 // Create connection pool
 const pool = new Pool({

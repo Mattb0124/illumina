@@ -57,14 +57,14 @@ export default function StudyPage({ params }: StudyPageProps) {
   return (
     <main className="container">
       {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <Link
           href="/studies"
           style={{
             color: 'var(--text-secondary)',
             fontSize: '0.875rem',
             textDecoration: 'none',
-            marginBottom: '1.5rem',
+            marginBottom: '1rem',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -73,37 +73,37 @@ export default function StudyPage({ params }: StudyPageProps) {
           ← Back to Studies
         </Link>
 
-        <h1 style={{ marginBottom: '1rem', fontSize: '2rem' }}>{study.title}</h1>
+        <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', lineHeight: '1.3' }}>{study.title}</h1>
 
         <div style={{
           display: 'flex',
-          gap: '1rem',
-          fontSize: '0.875rem',
+          gap: '0.75rem',
+          fontSize: '0.8rem',
           color: 'var(--text-secondary)',
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap'
+          marginBottom: '0.75rem',
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
-          <span><strong>Theme:</strong> {study.theme}</span>
+          <span>{study.duration_days} days</span>
           <span>•</span>
-          <span><strong>Duration:</strong> {study.duration_days} days</span>
+          <span>{study.difficulty}</span>
           <span>•</span>
-          <span><strong>Difficulty:</strong> {study.difficulty}</span>
+          <span>{study.audience}</span>
           <span>•</span>
-          <span><strong>Audience:</strong> {study.audience}</span>
-          <span>•</span>
-          <span><strong>Time per session:</strong> {study.estimated_time_per_session}</span>
+          <span>{study.estimated_time_per_session}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
           {study.tags.map(tag => (
             <span
               key={tag}
               style={{
-                fontSize: '0.75rem',
-                padding: '0.25rem 0.5rem',
-                backgroundColor: 'var(--deep-cream)',
-                color: 'var(--deep-coffee)',
-                borderRadius: '4px'
+                fontSize: '0.7rem',
+                padding: '0.2rem 0.4rem',
+                backgroundColor: 'var(--sage-light)',
+                color: 'var(--ocean-dark)',
+                borderRadius: '3px',
+                fontWeight: '500'
               }}
             >
               {tag}
@@ -113,63 +113,51 @@ export default function StudyPage({ params }: StudyPageProps) {
       </div>
 
       {/* Study Description */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '1rem' }}>About This Study</h2>
-        <p style={{ lineHeight: '1.6', marginBottom: '1rem' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
+        <h2 style={{ marginBottom: '0.75rem', fontSize: '1.2rem', color: 'var(--navy)' }}>About This Study</h2>
+        <p style={{ lineHeight: '1.5', marginBottom: '1rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>
           {study.description}
         </p>
 
         <div style={{
-          padding: '1rem',
-          backgroundColor: 'var(--champagne)',
-          borderRadius: '6px',
-          borderLeft: '4px solid var(--ultra-fine-gold)'
+          padding: '0.75rem',
+          backgroundColor: 'var(--sage-light)',
+          borderRadius: '4px',
+          borderLeft: '3px solid var(--ocean-medium)',
+          fontSize: '0.9rem'
         }}>
-          <h4 style={{ margin: '0 0 0.75rem 0' }}>Pastor's Message</h4>
-          <p style={{ margin: 0, fontStyle: 'italic' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--ocean-dark)' }}>Pastor's Message</h4>
+          <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
             {study.pastor_message}
           </p>
         </div>
       </div>
 
       {/* Study Metadata */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Study Details</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <div>
-            <strong>Study Style:</strong> {study.study_style}
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem', color: 'var(--navy)' }}>Study Information</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.9rem' }}>
+          <div style={{ color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>Style:</strong> {study.study_style}
           </div>
-          <div>
-            <strong>Structure:</strong> {study.study_structure}
+          <div style={{ color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>Structure:</strong> {study.study_structure}
           </div>
-          <div>
-            <strong>Generated by:</strong> {study.generated_by}
-          </div>
-          <div>
-            <strong>Status:</strong> {study.status}
-          </div>
-          <div>
-            <strong>Popularity:</strong> {study.popularity}/10
-          </div>
-          <div>
-            <strong>Created:</strong> {new Date(study.created_at).toLocaleDateString()}
+          <div style={{ color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>Created:</strong> {new Date(study.created_at).toLocaleDateString()}
           </div>
         </div>
       </div>
 
-      {/* Coming Soon Section */}
-      <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Detailed Study Content Coming Soon</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-          Daily study content, scripture passages, discussion questions, and progress tracking will be available soon.
-        </p>
+      {/* Study Actions */}
+      <div className="card" style={{ textAlign: 'center', padding: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/studies" className="button button-secondary">
-            Browse Other Studies
+          <Link href="/studies" className="button button-secondary" style={{ fontSize: '0.9rem' }}>
+            Browse Studies
           </Link>
-          <button className="button button-primary" disabled style={{ opacity: 0.5 }}>
-            Start Study (Coming Soon)
-          </button>
+          <Link href={`/studies/${study.id}/day/1`} className="button button-primary" style={{ fontSize: '0.9rem', fontWeight: '600' }}>
+            Start Day 1 →
+          </Link>
         </div>
       </div>
 

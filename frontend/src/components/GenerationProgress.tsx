@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { aiService, GenerationStatus, WorkflowStep } from '@/services/aiService';
+import { aiService, GenerationStatus } from '@/services/aiService';
 
 interface GenerationProgressProps {
   requestId: string;
@@ -12,11 +12,9 @@ interface GenerationProgressProps {
 export default function GenerationProgress({ requestId, onCompleted, onError }: GenerationProgressProps) {
   const [status, setStatus] = useState<GenerationStatus | null>(null);
   const [isPolling, setIsPolling] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null;
     let timeInterval: NodeJS.Timeout | null = null;
 
     if (isPolling) {
@@ -25,7 +23,6 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
         requestId,
         (updatedStatus) => {
           setStatus(updatedStatus);
-          setError(null);
         },
         5000, // Poll every 5 seconds
         1800000 // 30 minute timeout
@@ -40,7 +37,6 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
         })
         .catch((error) => {
           setIsPolling(false);
-          setError(error.message);
           onError(error.message);
         });
 
@@ -52,7 +48,6 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
     }
 
     return () => {
-      if (pollInterval) clearInterval(pollInterval);
       if (timeInterval) clearInterval(timeInterval);
     };
   }, [requestId, isPolling, onCompleted, onError]);
@@ -73,37 +68,63 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getStepIcon = (step: WorkflowStep): string => {
-    switch (step.status) {
-      case 'completed': return '✅';
-      case 'in_progress': return '⏳';
-      case 'failed': return '❌';
-      default: return '⭕';
+  const getStatusMessage = (status: GenerationStatus): string => {
+    switch (status.status) {
+      case 'pending':
+        return 'Preparing to generate your study...';
+      case 'processing':
+        return 'Analyzing your request and planning the study...';
+      case 'content_generation':
+        return 'Creating study content and lessons...';
+      case 'validation':
+        return 'Reviewing content for accuracy and quality...';
+      case 'completed':
+        return 'Your study is ready!';
+      case 'failed':
+        return 'Generation encountered an issue';
+      default:
+        return 'Generating your Bible study...';
     }
   };
 
   const getProgressColor = (progress: number): string => {
-    if (progress >= 90) return 'var(--deep-green)';
-    if (progress >= 60) return 'var(--golden-bronze)';
-    if (progress >= 30) return 'var(--ultra-fine-gold)';
-    return 'var(--soft-blue)';
+    if (progress >= 90) return 'var(--ocean-dark)';
+    if (progress >= 60) return 'var(--ocean-medium)';
+    if (progress >= 30) return 'var(--ocean-light)';
+    return 'var(--ocean-accent)';
   };
 
+  // Loading state
   if (!status) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-        <div style={{ marginBottom: '1rem' }}>
-          <div className="spinner" style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid var(--border)',
-            borderTop: '4px solid var(--golden-bronze)',
+      <div className="card glass-earth" style={{
+        maxWidth: '600px',
+        margin: '0 auto',
+        textAlign: 'center',
+        padding: '3rem 2rem'
+      }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid var(--sage-medium)',
+            borderTop: '4px solid var(--ocean-accent)',
             borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto'
+            animation: 'spin 1.2s linear infinite',
+            margin: '0 auto 1.5rem'
           }}></div>
+          <h2 style={{
+            color: 'var(--ocean-dark)',
+            marginBottom: '0.5rem',
+            fontSize: '1.5rem'
+          }}>
+            Initializing Generation
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+            Setting up your personalized Bible study...
+          </p>
         </div>
-        <p>Loading generation status...</p>
+
         <style jsx>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -115,130 +136,128 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
   }
 
   return (
-    <div className="card" style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div className="card glass-earth" style={{ maxWidth: '600px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <div>
-            <h2 style={{ margin: 0, color: 'var(--navy)' }}>Generating Study</h2>
-            <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)' }}>{status.title}</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Elapsed: {formatTime(elapsedTime)}
-            </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              ETA: {aiService.calculateEstimatedCompletion(status)}
-            </div>
-          </div>
-        </div>
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+        <h1 style={{
+          color: 'var(--ocean-dark)',
+          marginBottom: '0.5rem',
+          fontSize: '1.875rem',
+          fontWeight: '700'
+        }}>
+          {status.title}
+        </h1>
+        <p style={{
+          color: 'var(--text-secondary)',
+          fontSize: '1.1rem',
+          margin: 0
+        }}>
+          {getStatusMessage(status)}
+        </p>
+      </div>
 
+      {/* Progress Section */}
+      <div style={{ marginBottom: '2.5rem' }}>
         {/* Progress Bar */}
         <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--navy)' }}>
-              Overall Progress
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '0.75rem'
+          }}>
+            <span style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: 'var(--ocean-dark)'
+            }}>
+              Progress
             </span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--navy)' }}>
+            <span style={{
+              fontSize: '1.25rem',
+              fontWeight: '700',
+              color: 'var(--ocean-dark)'
+            }}>
               {status.progress}%
             </span>
           </div>
           <div style={{
             width: '100%',
-            height: '12px',
-            backgroundColor: 'var(--border)',
-            borderRadius: '6px',
-            overflow: 'hidden'
+            height: '16px',
+            backgroundColor: 'var(--sage-light)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            border: '1px solid var(--sage-medium)'
           }}>
             <div style={{
               width: `${status.progress}%`,
               height: '100%',
-              backgroundColor: getProgressColor(status.progress),
-              transition: 'width 0.3s ease-in-out'
+              background: `linear-gradient(90deg, ${getProgressColor(status.progress)}, var(--ocean-accent))`,
+              transition: 'width 0.5s ease-in-out',
+              borderRadius: '7px'
             }}></div>
           </div>
         </div>
 
-        {/* Status Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{
-            padding: '0.25rem 0.75rem',
-            borderRadius: '20px',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            backgroundColor: aiService.getStatusColor(status.status),
-            color: 'white'
-          }}>
-            {status.status.replace(/_/g, ' ').toUpperCase()}
-          </span>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            {status.generatedDays} of {status.totalDays} days generated
-          </span>
-        </div>
-      </div>
-
-      {/* Workflow Steps */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem', color: 'var(--navy)' }}>Workflow Progress</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {status.workflowSteps.map((step, index) => (
-            <div key={index} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '0.75rem',
-              backgroundColor: step.status === 'in_progress' ? 'var(--soft-blue)' : 'transparent',
-              borderRadius: '6px',
-              border: step.status === 'in_progress' ? '1px solid var(--golden-bronze)' : '1px solid transparent'
+        {/* Status Info */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '1rem',
+          padding: '1.25rem',
+          backgroundColor: 'var(--sage-light)',
+          borderRadius: '12px',
+          border: '1px solid var(--sage-medium)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary)',
+              marginBottom: '0.25rem'
             }}>
-              <span style={{ fontSize: '1.25rem' }}>{getStepIcon(step)}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: 'var(--navy)' }}>
-                  {aiService.formatWorkflowStep(step.step)}
-                </div>
-                {step.startedAt && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {step.status === 'completed' && step.completedAt
-                      ? `Completed at ${new Date(step.completedAt).toLocaleTimeString()}`
-                      : `Started at ${new Date(step.startedAt).toLocaleTimeString()}`
-                    }
-                  </div>
-                )}
-              </div>
-              <div style={{
-                padding: '0.25rem 0.5rem',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                backgroundColor:
-                  step.status === 'completed' ? 'var(--deep-green)' :
-                  step.status === 'in_progress' ? 'var(--golden-bronze)' :
-                  step.status === 'failed' ? 'var(--rich-mahogany)' :
-                  'var(--warm-gray)',
-                color: 'white'
-              }}>
-                {step.status.replace(/_/g, ' ')}
-              </div>
+              Days Generated
             </div>
-          ))}
-        </div>
-      </div>
+            <div style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: 'var(--ocean-dark)'
+            }}>
+              {status.generatedDays} of {status.totalDays}
+            </div>
+          </div>
 
-      {/* Study Details */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem', color: 'var(--navy)' }}>Study Details</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <div>
-            <strong>Topic:</strong> {status.topic}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary)',
+              marginBottom: '0.25rem'
+            }}>
+              Time Elapsed
+            </div>
+            <div style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: 'var(--ocean-dark)'
+            }}>
+              {formatTime(elapsedTime)}
+            </div>
           </div>
-          <div>
-            <strong>Duration:</strong> {status.duration} ({status.durationDays} days)
-          </div>
-          <div>
-            <strong>Started:</strong> {new Date(status.createdAt).toLocaleString()}
-          </div>
-          <div>
-            <strong>Request ID:</strong> {status.requestId.slice(0, 8)}...
+
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary)',
+              marginBottom: '0.25rem'
+            }}>
+              Estimated Time Left
+            </div>
+            <div style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: 'var(--ocean-dark)'
+            }}>
+              {aiService.calculateEstimatedCompletion(status)}
+            </div>
           </div>
         </div>
       </div>
@@ -246,24 +265,33 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
       {/* Error Display */}
       {status.errorMessage && (
         <div style={{
-          padding: '1rem',
-          backgroundColor: '#FEF2F2',
-          border: '1px solid #FECACA',
-          borderRadius: '6px',
-          color: '#DC2626',
-          marginBottom: '2rem'
+          padding: '1rem 1.25rem',
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          marginBottom: '2rem',
+          fontSize: '0.925rem'
         }}>
-          <strong>Error:</strong> {status.errorMessage}
+          <strong>Issue:</strong> {status.errorMessage}
         </div>
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-        {(status.status === 'pending' || status.status === 'processing') && (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        {(status.status === 'pending' || status.status === 'processing' || status.status === 'content_generation') && (
           <button
             onClick={handleCancel}
             className="button button-secondary"
-            style={{ padding: '0.75rem 1.5rem' }}
+            style={{
+              padding: '0.875rem 1.75rem',
+              fontSize: '0.925rem'
+            }}
           >
             Cancel Generation
           </button>
@@ -273,26 +301,28 @@ export default function GenerationProgress({ requestId, onCompleted, onError }: 
           <button
             onClick={() => onCompleted(status)}
             className="button button-primary"
-            style={{ padding: '0.75rem 1.5rem' }}
+            style={{
+              padding: '0.875rem 1.75rem',
+              fontSize: '0.925rem'
+            }}
           >
-            View Generated Study
+            View Your Study
           </button>
         )}
       </div>
 
-      {/* Info Section */}
+      {/* Simple Info */}
       <div style={{
-        backgroundColor: 'var(--soft-lavender)',
-        padding: '1rem',
-        borderRadius: '6px',
+        backgroundColor: 'var(--warm-cream)',
+        padding: '1rem 1.25rem',
+        borderRadius: '8px',
         fontSize: '0.875rem',
-        color: 'var(--deep-coffee)',
-        marginTop: '2rem'
+        color: 'var(--text-secondary)',
+        textAlign: 'center',
+        border: '1px solid var(--sage-medium)'
       }}>
         <p style={{ margin: 0 }}>
-          <strong>Note:</strong> Study generation involves multiple AI agents working together to ensure
-          theological accuracy and biblical soundness. The process includes content generation,
-          Bible verse validation, and theological review by AI experts.
+          Our AI is carefully crafting your personalized Bible study with theologically sound content and engaging discussion questions.
         </p>
       </div>
     </div>

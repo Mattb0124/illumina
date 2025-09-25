@@ -1,0 +1,137 @@
+{
+  "studyPlanResponse": {
+    "title": "Overcoming Anxiety",
+    "theme": "Finding Peace Through God's Promises",
+    "description": "A 7-day devotional study that guides believers through biblical truths about overcoming anxiety and finding peace in God. Each day builds upon practical principles for trusting God with our worries.",
+    "duration": 7,
+    "estimatedTimePerSession": "15-20 minutes",
+    "pastorMessage": "Anxiety touches every life, but God's Word offers us a different path. This study will guide you through timeless biblical truths that replace worry with worship, fear with faith, and anxiety with the peace that surpasses all understanding.",
+    "tags": ["anxiety", "peace", "trust", "worry", "faith", "devotional"],
+    "dailyPlan": [
+      {
+        "day": 1,
+        "title": "God's Invitation to Cast Our Cares",
+        "theme": "Surrendering Worries to God",
+        "focusPassage": "1 Peter 5:6-7",
+        "learningObjective": "Learn to actively surrender anxieties to God through humble submission and trust",
+        "keyPoints": ["God cares deeply for you", "Humility opens the door to God's grace", "Casting cares is an active choice"]
+      },
+      {
+        "day": 2,
+        "title": "The Peace That Guards Our Hearts",
+        "theme": "God's Supernatural Peace",
+        "focusPassage": "Philippians 4:6-7",
+        "learningObjective": "Understand how prayer with thanksgiving replaces anxiety with God's peace",
+        "keyPoints": ["Prayer is the antidote to anxiety", "Gratitude transforms perspective", "God's peace guards our minds"]
+      },
+      {
+        "day": 3,
+        "title": "Trusting God's Perfect Timing",
+        "theme": "Surrendering Control",
+        "focusPassage": "Ecclesiastes 3:1-8",
+        "learningObjective": "Find rest in God's sovereign timing and purposes for our lives",
+        "keyPoints": ["God has perfect timing for everything", "Seasons of difficulty have purpose", "Trust grows through surrender"]
+      },
+      {
+        "day": 4,
+        "title": "God's Strength in Our Weakness",
+        "theme": "Divine Strength for Human Frailty",
+        "focusPassage": "2 Corinthians 12:9-10",
+        "learningObjective": "Discover how God's strength is made perfect in our weakness and anxiety",
+        "keyPoints": ["God's grace is sufficient", "Weakness can become strength", "Contentment in difficult circumstances"]
+      },
+      {
+        "day": 5,
+        "title": "Fighting Fear with Truth",
+        "theme": "Biblical Truth Over Anxious Thoughts",
+        "focusPassage": "Isaiah 41:10",
+        "learningObjective": "Replace fearful thoughts with God's promises of presence and strength",
+        "keyPoints": ["God is always with us", "Fear and faith cannot coexist", "Truth defeats lies"]
+      },
+      {
+        "day": 6,
+        "title": "Taking Every Thought Captive",
+        "theme": "Renewing Our Minds",
+        "focusPassage": "2 Corinthians 10:4-5",
+        "learningObjective": "Learn to actively replace anxious thoughts with God's truth",
+        "keyPoints": ["We have divine weapons against lies", "Every thought can be controlled", "Obedience to Christ brings peace"]
+      },
+      {
+        "day": 7,
+        "title": "Living in God's Peace",
+        "theme": "Sustaining Peace Daily",
+        "focusPassage": "John 14:27",
+        "learningObjective": "Establish daily practices that maintain God's peace in our hearts",
+        "keyPoints": ["God's peace differs from world's peace", "Peace is a gift, not an achievement", "Daily surrender maintains peace"]
+      }
+    ]
+  },
+  "dailyContentResponses": {
+    "day1": {
+      "day": 1,
+      "title": "God's Invitation to Cast Our Cares",
+      "estimatedTime": "15-20 minutes",
+      "passages": [
+        {
+          "reference": "1 Peter 5:6-7",
+          "verses": [
+            {
+              "verse": 6,
+              "content": "Humble yourselves, therefore, under God's mighty hand, that he may lift you up in due time."
+            },
+            {
+              "verse": 7,
+              "content": "Cast all your anxiety on him because he cares for you."
+            }
+          ]
+        }
+      ],
+      "studyFocus": "Understanding that God invites us to actively surrender our worries to Him through humble submission, knowing that He deeply cares for every detail of our lives.",
+      "teachingPoint": "The word 'cast' in verse 7 comes from the Greek word 'epirrhiptō,' which means to throw upon or hurl. This isn't a gentle suggestion but an active, decisive movement. When we feel overwhelmed by anxiety, God invites us to literally throw our cares upon Him. The prerequisite is humility - recognizing that we cannot handle these burdens alone and that God's mighty hand is both powerful enough to carry them and tender enough to care about them. Peter connects humility with casting cares because pride keeps us holding onto worries, thinking we must solve everything ourselves.",
+      "discussionQuestions": [
+        "What makes it difficult for you to 'cast' your anxieties on God rather than holding onto them?",
+        "How does knowing that God 'cares for you' change your perspective on your current worries?",
+        "What does it look like practically to humble yourself under God's mighty hand in your daily life?"
+      ],
+      "reflectionQuestion": "What specific anxiety have you been carrying that God is inviting you to cast upon Him today?",
+      "applicationPoints": [
+        "Write down your top three anxieties and pray through casting each one on God",
+        "Practice humility by acknowledging one area where you've been trying to control outcomes"
+      ],
+      "prayerFocus": "Pray for the courage to release control and trust God's care in specific areas of anxiety in your life."
+    },
+    "day2": {
+      "day": 2,
+      "title": "The Peace That Guards Our Hearts",
+      "estimatedTime": "15-20 minutes",
+      "passages": [
+        {
+          "reference": "Philippians 4:6-7",
+          "verses": [
+            {
+              "verse": 6,
+              "content": "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God."
+            },
+            {
+              "verse": 7,
+              "content": "And the peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus."
+            }
+          ]
+        }
+      ],
+      "studyFocus": "Learning how prayer combined with thanksgiving creates a pathway from anxiety to supernatural peace that guards our hearts and minds.",
+      "teachingPoint": "Paul provides a clear prescription for anxiety: prayer, petition, and thanksgiving. The word 'guard' (phroureo) is a military term meaning to keep watch or stand sentinel. God's peace becomes like a guard posted at the door of our hearts, protecting us from anxious thoughts. This peace 'transcends understanding' - it's not based on circumstances being resolved but on God's character remaining constant. Thanksgiving is crucial because it shifts our focus from what's wrong to what God has already done, creating faith for what He will do.",
+      "discussionQuestions": [
+        "How does adding thanksgiving to your prayers change the way you feel about your requests?",
+        "What does it mean practically for God's peace to 'guard' your heart and mind?",
+        "Why do you think Paul emphasizes 'in every situation' when talking about prayer and thanksgiving?"
+      ],
+      "reflectionQuestion": "In what current situation do you need God's peace to stand guard over your thoughts and emotions?",
+      "applicationPoints": [
+        "Before praying about a worry, first thank God for three things related to that situation",
+        "Set a reminder to pray with thanksgiving when you feel anxiety rising throughout the day"
+      ],
+      "prayerFocus": "Ask God to help you develop a heart of thanksgiving even in difficult circumstances, and for His peace to guard your mind."
+    }
+  }
+}

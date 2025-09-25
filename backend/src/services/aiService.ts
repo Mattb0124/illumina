@@ -1,18 +1,28 @@
 import OpenAI from 'openai';
 import path from 'path';
 import fs from 'fs/promises';
+import dotenv from 'dotenv';
 import { query } from '../config/database.js';
-import { 
-  StudyRequestSchema, 
-  StudyPlanSchema, 
+
+// Load environment variables from .env file
+dotenv.config();
+import {
+  StudyRequestSchema,
+  AIStudyPlanResponseSchema,
+  StudyPlanSchema,
   DailyStudyContentSchema,
   StudyManifestSchema,
   type StudyRequest,
+  type AIStudyPlanResponse,
   type StudyPlan,
   type DailyStudyContent,
   type StudyManifest
 } from '../schemas/studySchemas.js';
 import type { StudyGenerationRequest, GeneratedStudyContent } from '../types/index.js';
+import { PromptTemplateFactory } from './promptTemplates.js';
+import { AIResponseParser } from '../utils/aiResponseParser.js';
+import { MarkdownGenerator } from '../generators/markdownGenerator.js';
+import { IdGenerator } from '../utils/idGenerator.js';
 
 /**
  * Multi-Agent Bible Study Generation Service
@@ -28,41 +38,146 @@ export class AIService {
   private config: {
     apiKey: string;
     model: string;
+    bookStudyModel: string;
     temperature: number;
     maxTokens: number;
+    bookStudyMaxTokens: number;
   };
+  private mockMode: boolean;
+  private mockData: any;
 
   constructor() {
     // Load configuration from environment variables
     this.config = {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: process.env.OPENAI_MODEL || 'gpt-4',
+      bookStudyModel: process.env.OPENAI_BOOK_STUDY_MODEL || 'gpt-4-turbo',
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000')
+      maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+      bookStudyMaxTokens: parseInt(process.env.OPENAI_BOOK_STUDY_MAX_TOKENS || '8000')
     };
+
+    // Initialize mock mode - use mock data if no API key or if explicitly enabled
+    this.mockMode = !this.config.apiKey || process.env.USE_MOCK_AI === 'true';
 
     // Initialize OpenAI client
     this.openai = new OpenAI({
-      apiKey: this.config.apiKey
+      apiKey: this.config.apiKey || 'mock-key'
     });
 
     this.studiesPath = path.join(process.cwd(), 'studies');
 
+    // Initialize mock data (will be loaded lazily when needed)
+    this.mockData = null;
+
     // Log configuration (without exposing the full API key)
-    if (this.config.apiKey) {
+    if (this.mockMode) {
+      console.log('🔧 AI Service Configuration (Mock Mode):');
+      console.log('   Using hardcoded test data instead of OpenAI API');
+    } else if (this.config.apiKey) {
       console.log('🔧 AI Service Configuration:');
-      console.log(`   Model: ${this.config.model}`);
+      console.log(`   Default Model: ${this.config.model}`);
+      console.log(`   Book Study Model: ${this.config.bookStudyModel}`);
       console.log(`   Temperature: ${this.config.temperature}`);
-      console.log(`   Max Tokens: ${this.config.maxTokens}`);
+      console.log(`   Default Max Tokens: ${this.config.maxTokens}`);
+      console.log(`   Book Study Max Tokens: ${this.config.bookStudyMaxTokens}`);
       console.log(`   API Key: ${this.config.apiKey.substring(0, 8)}...`);
     }
   }
 
   /**
-   * Check if AI service is enabled
+   * Load mock data from JSON file
+   */
+  private async loadMockData(): Promise<void> {
+    if (this.mockMode) {
+      try {
+        const mockDataPath = path.join(process.cwd(), 'src', 'data', 'mockAIResponses.json');
+        const mockDataContent = await fs.readFile(mockDataPath, 'utf8');
+        this.mockData = JSON.parse(mockDataContent);
+        console.log('✅ Mock AI data loaded successfully');
+      } catch (error) {
+        console.warn('⚠️  Could not load mock data, will generate basic responses');
+        this.mockData = null;
+      }
+    }
+  }
+
+  /**
+   * Create study plan using mock data
+   */
+  private async createMockStudyPlan(request: any): Promise<StudyPlan> {
+    // Load mock data if not already loaded
+    if (!this.mockData) {
+      await this.loadMockData();
+    }
+
+    // Use the existing request ID as the study ID for consistency
+    const studyId = request.id;
+
+    if (this.mockData?.studyPlanResponse) {
+      // Use loaded mock data
+      const mockResponse = this.mockData.studyPlanResponse;
+      return {
+        studyId,
+        title: mockResponse.title,
+        theme: mockResponse.theme,
+        description: mockResponse.description,
+        duration: mockResponse.duration,
+        estimatedTimePerSession: mockResponse.estimatedTimePerSession,
+        pastorMessage: mockResponse.pastorMessage,
+        tags: mockResponse.tags,
+        dailyPlan: mockResponse.dailyPlan,
+        difficulty: request.difficulty,
+        audience: request.audience,
+        studyStyle: request.study_style
+      };
+    }
+
+    // Fallback mock data if file couldn't be loaded
+    return {
+      studyId,
+      title: request.title,
+      theme: "Faith and Trust",
+      description: "A study exploring biblical themes of faith and trust in God.",
+      duration: request.duration_days,
+      estimatedTimePerSession: "15-20 minutes",
+      pastorMessage: "This study will help deepen your relationship with God through His Word.",
+      tags: ["faith", "trust", "biblical"],
+      dailyPlan: Array.from({ length: request.duration_days }, (_, i) => ({
+        day: i + 1,
+        title: `Day ${i + 1}: Growing in Faith`,
+        theme: "Faith Development",
+        focusPassage: "Hebrews 11:1",
+        learningObjective: "Learn to trust God more deeply",
+        keyPoints: ["Faith is confidence", "God is trustworthy", "Growth requires trust"]
+      })),
+      difficulty: request.difficulty,
+      audience: request.audience,
+      studyStyle: request.study_style
+    };
+  }
+
+  /**
+   * Check if AI service is enabled (including mock mode)
    */
   isEnabled(): boolean {
-    return !!(this.config.apiKey && this.config.apiKey.startsWith('sk-'));
+    return this.mockMode || !!(this.config.apiKey && this.config.apiKey.startsWith('sk-'));
+  }
+
+  /**
+   * Get appropriate model and token limit based on study style
+   */
+  private getModelConfig(studyStyle: string): { model: string; maxTokens: number } {
+    if (studyStyle === 'book-study') {
+      return {
+        model: this.config.bookStudyModel,
+        maxTokens: this.config.bookStudyMaxTokens
+      };
+    }
+    return {
+      model: this.config.model,
+      maxTokens: this.config.maxTokens
+    };
   }
 
   /**
@@ -89,10 +204,31 @@ export class AIService {
     });
 
     try {
-      // Update status to processing
+      // Insert request record if it doesn't exist (self-contained approach)
       if (request.id) {
+        await query(
+          `INSERT INTO study_generation_requests
+           (id, user_id, title, topic, duration, duration_days, study_style, difficulty, audience, special_requirements, request_details, status, progress_percentage, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', 0, NOW(), NOW())
+           ON CONFLICT (id) DO NOTHING`,
+          [
+            request.id,
+            request.user_id,
+            request.title,
+            request.topic,
+            `${request.duration_days} days`,
+            request.duration_days,
+            request.study_style,
+            request.difficulty,
+            request.audience,
+            request.special_requirements || null,
+            JSON.stringify(request)
+          ]
+        );
+
+        // Update status to processing
         await this.updateRequestStatus(request.id, 'processing', 10);
-        await this.updateWorkflowStep(request.id, 'planning_phase', 'processing');
+        await this.updateWorkflowStep(request.id, 'planning_phase', 'in_progress');
       }
 
       // Phase 1: Planning - Create structured study plan
@@ -102,7 +238,7 @@ export class AIService {
       if (request.id) {
         await this.updateRequestStatus(request.id, 'processing', 40);
         await this.updateWorkflowStep(request.id, 'planning_phase', 'completed');
-        await this.updateWorkflowStep(request.id, 'content_generation', 'processing');
+        await this.updateWorkflowStep(request.id, 'content_generation', 'in_progress');
       }
 
       // Phase 2: Content Generation - Create detailed content
@@ -112,7 +248,7 @@ export class AIService {
       if (request.id) {
         await this.updateRequestStatus(request.id, 'processing', 70);
         await this.updateWorkflowStep(request.id, 'content_generation', 'completed');
-        await this.updateWorkflowStep(request.id, 'file_creation', 'processing');
+        await this.updateWorkflowStep(request.id, 'file_creation', 'in_progress');
       }
 
       // Phase 3: File System - Create study files
@@ -128,6 +264,10 @@ export class AIService {
       console.log('💾 Phase 4: Storing in database...');
       const generatedContent = await this.storeGeneratedContent(request.id || '', studyContent, studyPath);
 
+      // Phase 5: Insert metadata into main studies table
+      console.log('📊 Phase 5: Saving study metadata to studies table...');
+      await this.insertStudyMetadata(studyPlan);
+
       if (request.id) {
         await this.updateRequestStatus(request.id, 'completed', 100);
         await this.updateWorkflowStep(request.id, 'completed', 'completed');
@@ -139,6 +279,7 @@ export class AIService {
       console.log('✅ Multi-step AI study generation completed successfully');
       console.log(`⏱️ Total time: ${Math.round(duration / 1000)}s`);
       console.log(`📖 Generated ${studyContent.length} days of content`);
+      console.log(`🤖 Used model: ${this.getModelConfig(request.study_style).model}`);
       console.log(`📁 Study files created at: ${studyPath}`);
 
       return {
@@ -164,7 +305,7 @@ export class AIService {
   }
 
   /**
-   * Phase 1: Create study plan using structured prompting
+   * Phase 1: Create study plan using structured prompting or mock data
    */
   private async createStudyPlan(request: StudyGenerationRequest): Promise<StudyPlan> {
     try {
@@ -179,49 +320,19 @@ export class AIService {
         special_requirements: request.special_requirements
       });
 
-      const planningPrompt = `You are a Bible study curriculum planning expert. Create a comprehensive ${validatedRequest.duration_days}-day Bible study plan.
+      // Use mock data if in mock mode
+      if (this.mockMode) {
+        return await this.createMockStudyPlan(validatedRequest);
+      }
 
-STUDY REQUIREMENTS:
-- Title: ${validatedRequest.title}
-- Topic: ${validatedRequest.topic}
-- Duration: ${validatedRequest.duration_days} days
-- Difficulty: ${validatedRequest.difficulty}
-- Audience: ${validatedRequest.audience}
-- Study Style: ${validatedRequest.study_style}
-- Special Requirements: ${validatedRequest.special_requirements || 'None'}
+      // Use the appropriate prompt template based on study style
+      const planningPrompt = PromptTemplateFactory.getPlanningPrompt(validatedRequest);
 
-Create a structured plan that includes:
-1. Study metadata (title, theme, description, tags)
-2. Daily plan with logical progression of themes
-3. Specific Bible passages for each day
-4. Learning objectives that build upon each other
-5. Pastor's message explaining the study's value
-
-IMPORTANT: Respond with valid JSON in this exact format:
-{
-  "title": "Study title",
-  "theme": "Main theme",
-  "description": "Study description (2-3 sentences)",
-  "duration": ${validatedRequest.duration_days},
-  "estimatedTimePerSession": "15-20 minutes",
-  "pastorMessage": "Pastor's message about the study's value",
-  "tags": ["tag1", "tag2", "tag3"],
-  "dailyPlan": [
-    {
-      "day": 1,
-      "title": "Day 1 title",
-      "theme": "Day 1 theme",
-      "focusPassage": "Bible Reference (e.g., John 3:16)",
-      "learningObjective": "What students will learn this day",
-      "keyPoints": ["Key point 1", "Key point 2"]
-    }
-  ]
-}
-
-Ensure theological accuracy and appropriate progression for ${validatedRequest.difficulty} level.`;
+      // Get appropriate model configuration for this study style
+      const modelConfig = this.getModelConfig(validatedRequest.study_style);
 
       const planningResponse = await this.openai.chat.completions.create({
-        model: this.config.model,
+        model: modelConfig.model,
         messages: [
           {
             role: 'system',
@@ -233,7 +344,7 @@ Ensure theological accuracy and appropriate progression for ${validatedRequest.d
           }
         ],
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        max_tokens: modelConfig.maxTokens // Use full token allowance for planning
       });
 
       const planContent = planningResponse.choices[0]?.message?.content;
@@ -241,25 +352,27 @@ Ensure theological accuracy and appropriate progression for ${validatedRequest.d
         throw new Error('No planning content generated');
       }
 
-      // Parse and validate the study plan
-      const planData = this.extractStructuredData(planContent, StudyPlanSchema) as StudyPlan;
-      
-      // Generate study ID and add metadata
-      const studyId = this.generateStudyId(validatedRequest.title);
-      return {
+      // Log the response for debugging
+      console.log('📝 AI Planning Response length:', planContent.length);
+
+      // Parse the OpenAI response using the sophisticated AI response parser
+      const aiResponse = AIResponseParser.extractStructuredData(planContent, AIStudyPlanResponseSchema);
+
+      // Use the existing request ID as the study ID for consistency
+      const studyId = request.id;
+
+      // Add missing fields from the original request before validation
+      const enrichedPlan = {
+        ...aiResponse,
         studyId,
-        title: planData.title,
-        theme: planData.theme,
-        description: planData.description,
-        duration: planData.duration,
-        estimatedTimePerSession: planData.estimatedTimePerSession,
-        pastorMessage: planData.pastorMessage,
-        tags: planData.tags,
-        dailyPlan: planData.dailyPlan,
+        studyStyle: validatedRequest.study_style,
         difficulty: validatedRequest.difficulty,
-        audience: validatedRequest.audience,
-        studyStyle: validatedRequest.study_style
+        audience: validatedRequest.audience
       };
+
+      // Validate the complete plan and return it directly
+      const validatedPlan = StudyPlanSchema.parse(enrichedPlan) as StudyPlan;
+      return validatedPlan;
 
     } catch (error) {
       console.error('Error in createStudyPlan:', error);
@@ -274,65 +387,26 @@ Ensure theological accuracy and appropriate progression for ${validatedRequest.d
     try {
       const dailyContent: DailyStudyContent[] = [];
 
+      // Use mock data if in mock mode
+      if (this.mockMode) {
+        return await this.generateMockDetailedContent(studyPlan);
+      }
+
+      // Get appropriate model configuration for this study style
+      const modelConfig = this.getModelConfig(studyPlan.studyStyle);
+
       // Generate content for each day
       for (const dayPlan of studyPlan.dailyPlan) {
-        console.log(`  📝 Generating content for Day ${dayPlan.day}: ${dayPlan.title}`);
+        console.log(`  📝 Generating content for Day ${dayPlan.day}: ${dayPlan.title} (using ${modelConfig.model})`);
 
-        const contentPrompt = `You are a Bible study content creation expert. Create detailed daily study content.
-
-STUDY CONTEXT:
-- Overall Study: ${studyPlan.title}
-- Theme: ${studyPlan.theme}
-- Difficulty: ${studyPlan.difficulty}
-- Audience: ${studyPlan.audience}
-- Estimated Time: ${studyPlan.estimatedTimePerSession}
-
-DAY ${dayPlan.day} REQUIREMENTS:
-- Title: ${dayPlan.title}
-- Theme: ${dayPlan.theme}
-- Focus Passage: ${dayPlan.focusPassage}
-- Learning Objective: ${dayPlan.learningObjective}
-- Key Points: ${dayPlan.keyPoints.join(', ')}
-
-Create comprehensive daily content with:
-1. Clear teaching points explaining biblical concepts
-2. 3-4 thoughtful discussion questions
-3. 1 personal reflection question  
-4. 2-3 practical application points
-5. Focused prayer point
-6. Bible passages with specific verses
-
-IMPORTANT: Respond with valid JSON in this exact format:
-{
-  "day": ${dayPlan.day},
-  "title": "${dayPlan.title}",
-  "estimatedTime": "${studyPlan.estimatedTimePerSession}",
-  "passages": [
-    {
-      "reference": "Bible Reference",
-      "verses": [
-        {
-          "verse": 1,
-          "content": "Verse text here"
-        }
-      ]
-    }
-  ],
-  "studyFocus": "Brief description of what this day focuses on",
-  "teachingPoint": "2-3 paragraphs explaining the biblical concepts",
-  "discussionQuestions": ["Question 1", "Question 2", "Question 3"],
-  "reflectionQuestion": "Personal reflection question",
-  "applicationPoints": ["Practical application 1", "Practical application 2"],
-  "prayerFocus": "Specific prayer focus for this day"
-}
-
-Ensure theological accuracy and practical application.`;
+        // Use the appropriate content prompt template based on study style
+        const contentPrompt = PromptTemplateFactory.getContentPrompt(studyPlan, dayPlan);
 
         const contentResponse = await this.openai.chat.completions.create({
-          model: this.config.model,
+          model: modelConfig.model,
           messages: [
             {
-              role: 'system', 
+              role: 'system',
               content: 'You are a Bible study content expert. Always respond with valid JSON in the exact format requested.'
             },
             {
@@ -341,7 +415,7 @@ Ensure theological accuracy and practical application.`;
             }
           ],
           temperature: this.config.temperature,
-          max_tokens: Math.floor(this.config.maxTokens * 0.75) // Use 75% of max tokens for content generation
+          max_tokens: modelConfig.maxTokens // Use appropriate token limit for study type
         });
 
         const dayContentText = contentResponse.choices[0]?.message?.content;
@@ -349,9 +423,34 @@ Ensure theological accuracy and practical application.`;
           throw new Error(`No content generated for day ${dayPlan.day}`);
         }
 
-        // Parse and validate the daily content
-        const dayContent = this.extractStructuredData(dayContentText, DailyStudyContentSchema) as DailyStudyContent;
-        dailyContent.push(dayContent);
+        try {
+          // Parse and validate the daily content
+          const dayContent = AIResponseParser.extractStructuredData(dayContentText, DailyStudyContentSchema) as DailyStudyContent;
+
+          // Log any missing optional fields (for visibility, not recovery)
+          const missingFields = [];
+          if (!dayContent.teachingPoint) missingFields.push('teachingPoint');
+          if (!dayContent.studyFocus) missingFields.push('studyFocus');
+          if (!dayContent.reflectionQuestion) missingFields.push('reflectionQuestion');
+          if (!dayContent.prayerFocus) missingFields.push('prayerFocus');
+          if (!dayContent.discussionQuestions || dayContent.discussionQuestions.length === 0) missingFields.push('discussionQuestions');
+          if (!dayContent.applicationPoints || dayContent.applicationPoints.length === 0) missingFields.push('applicationPoints');
+
+          if (missingFields.length > 0) {
+            console.log(`⚠️ Day ${dayPlan.day}: AI omitted fields: ${missingFields.join(', ')}`);
+          }
+
+          dailyContent.push(dayContent);
+          console.log(`✅ Day ${dayPlan.day} content generated successfully`);
+
+        } catch (error) {
+          console.error(`❌ Failed to generate content for Day ${dayPlan.day}:`, (error as Error).message);
+
+          // Log the raw response for debugging
+          console.error('Raw AI response that failed validation:', dayContentText.substring(0, 500) + '...');
+
+          throw new Error(`Failed to generate valid content for Day ${dayPlan.day}: ${(error as Error).message}`);
+        }
 
         // Small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -363,6 +462,64 @@ Ensure theological accuracy and practical application.`;
       console.error('Error in generateDetailedContent:', error);
       throw error;
     }
+  }
+
+  /**
+   * Generate detailed content using mock data
+   */
+  private async generateMockDetailedContent(studyPlan: StudyPlan): Promise<DailyStudyContent[]> {
+    // Load mock data if not already loaded
+    if (!this.mockData) {
+      await this.loadMockData();
+    }
+
+    const dailyContent: DailyStudyContent[] = [];
+
+    for (const dayPlan of studyPlan.dailyPlan) {
+      console.log(`  📝 Using mock content for Day ${dayPlan.day}: ${dayPlan.title}`);
+
+      let mockDayContent: DailyStudyContent;
+
+      // Use specific mock data if available
+      if (this.mockData?.dailyContentResponses?.[`day${dayPlan.day}`]) {
+        mockDayContent = this.mockData.dailyContentResponses[`day${dayPlan.day}`];
+      } else {
+        // Generate fallback mock content
+        mockDayContent = {
+          day: dayPlan.day,
+          title: dayPlan.title,
+          estimatedTime: studyPlan.estimatedTimePerSession,
+          passages: [
+            {
+              reference: dayPlan.focusPassage,
+              verses: [
+                {
+                  verse: 1,
+                  content: "For sample purposes, this is a mock verse content from the Bible."
+                }
+              ]
+            }
+          ],
+          studyFocus: `Today's focus is on ${dayPlan.theme} as we explore ${dayPlan.focusPassage}.`,
+          teachingPoint: `This day's teaching explores the key theme of ${dayPlan.theme}. ${dayPlan.learningObjective} through understanding God's Word and applying it to our daily lives. The passage ${dayPlan.focusPassage} provides rich insights into how we can grow in faith and trust.`,
+          discussionQuestions: [
+            `How does ${dayPlan.focusPassage} speak to your current situation?`,
+            `What practical steps can you take to apply ${dayPlan.theme} in your life?`,
+            `How does this passage connect to the overall theme of ${studyPlan.theme}?`
+          ],
+          reflectionQuestion: `In what area of your life do you need to apply the lesson from ${dayPlan.focusPassage}?`,
+          applicationPoints: dayPlan.keyPoints,
+          prayerFocus: `Pray that God would help you to understand and apply the truth of ${dayPlan.theme} in your daily walk.`
+        };
+      }
+
+      dailyContent.push(mockDayContent);
+
+      // Small delay to simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    return dailyContent;
   }
 
   /**
@@ -405,7 +562,7 @@ Ensure theological accuracy and practical application.`;
 
       // Create daily markdown files
       for (const dayContent of dailyContent) {
-        const markdownContent = this.generateMarkdownContent(dayContent);
+        const markdownContent = MarkdownGenerator.generateMarkdownContent(dayContent);
         await fs.writeFile(
           path.join(studyDir, `day-${dayContent.day}.md`),
           markdownContent,
@@ -422,78 +579,9 @@ Ensure theological accuracy and practical application.`;
     }
   }
 
-  /**
-   * Generate markdown content for a daily study
-   */
-  private generateMarkdownContent(dayContent: DailyStudyContent): string {
-    const passagesYaml = dayContent.passages.map(passage => {
-      const versesYaml = passage.verses.map(verse => 
-        `    - verse: ${verse.verse}\n      content: "${verse.content}"`
-      ).join('\n');
-      
-      return `  - reference: "${passage.reference}"\n    verses:\n${versesYaml}`;
-    }).join('\n');
 
-    return `---
-day: ${dayContent.day}
-title: "${dayContent.title}"
-estimatedTime: "${dayContent.estimatedTime}"
-passages:
-${passagesYaml}
----
 
-# Day ${dayContent.day}: ${dayContent.title}
 
-## Study Focus
-${dayContent.studyFocus}
-
-## Teaching Point
-${dayContent.teachingPoint}
-
-## Discussion Questions
-${dayContent.discussionQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
-
-## Reflection Question
-${dayContent.reflectionQuestion}
-
-## Application Points
-${dayContent.applicationPoints.map(point => `- ${point}`).join('\n')}
-
-## Prayer Focus
-${dayContent.prayerFocus}
-`;
-  }
-
-  /**
-   * Extract structured data from AI response
-   */
-  private extractStructuredData<T>(content: string, schema: any): T {
-    try {
-      // Try to find JSON in the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return schema.parse(parsed);
-      }
-
-      // If no JSON found, try parsing the entire content
-      return schema.parse(JSON.parse(content));
-    } catch (error) {
-      console.error('Failed to extract structured data:', error);
-      console.error('Content:', content);
-      throw new Error('Failed to parse AI response into structured format');
-    }
-  }
-
-  /**
-   * Generate a study ID from the title
-   */
-  private generateStudyId(title: string): string {
-    return title.toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 50) + '-' + Date.now();
-  }
 
   /**
    * Store generated content in database
@@ -559,6 +647,44 @@ ${dayContent.prayerFocus}
     }
 
     return generatedContent;
+  }
+
+  /**
+   * Insert study metadata into main studies table
+   */
+  private async insertStudyMetadata(studyPlan: StudyPlan): Promise<void> {
+    try {
+      await query(
+        `INSERT INTO studies (
+          id, title, theme, description, duration_days, study_style,
+          difficulty, audience, study_structure, estimated_time_per_session,
+          pastor_message, generated_by, generation_prompt, popularity,
+          tags, status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())`,
+        [
+          studyPlan.studyId,
+          studyPlan.title,
+          studyPlan.theme,
+          studyPlan.description,
+          studyPlan.duration,
+          studyPlan.studyStyle,
+          studyPlan.difficulty,
+          studyPlan.audience,
+          'daily', // studyStructure - all AI generated are daily for now
+          studyPlan.estimatedTimePerSession,
+          studyPlan.pastorMessage,
+          'AI', // generated_by
+          `AI-generated study on: ${studyPlan.theme}`, // generation_prompt
+          0, // popularity
+          studyPlan.tags,
+          'Published' // status - must be 'Published', 'Draft', or 'In Review'
+        ]
+      );
+      console.log(`✅ Study metadata saved to database: ${studyPlan.studyId}`);
+    } catch (error) {
+      console.error('Error inserting study metadata:', error);
+      throw error;
+    }
   }
 
   /**

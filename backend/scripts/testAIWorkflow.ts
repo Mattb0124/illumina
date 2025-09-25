@@ -10,9 +10,18 @@
  */
 
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { execSync } from 'child_process';
+import dotenv from 'dotenv';
 import type { StudyGenerationRequest } from '../src/types/index.js';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from .env file (look in parent directory)
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // =====================================================
 // EDIT THESE VALUES TO TEST DIFFERENT STUDIES
@@ -23,18 +32,18 @@ interface StudyConfig {
   days: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   audience: string;
-  style: 'devotional' | 'expository' | 'topical' | 'inductive';
+  style: 'devotional' | 'topical' | 'book-study' | 'marriage';
   requirements: string;
 }
 
 const studyConfig: StudyConfig = {
-  topic: 'Anxiety and leaning on God',
-  title: 'Overcoming Anxiety',
-  days: 7,
-  difficulty: 'beginner',
-  audience: 'individual believers',
-  style: 'devotional',
-  requirements: 'Include practical examples and reflection questions'
+  topic: 'Book of Philippians',
+  title: 'Joy in the Game: Lessons from Philippians for Athletes',
+  days: 1,  // Testing with 1 day (Chapter 1) to limit API costs while testing improved prompts
+  difficulty: 'intermediate',
+  audience: 'individual',  // Database constraint requires: individual, couples, group, family
+  style: 'book-study',
+  requirements: 'Chapter-by-chapter exposition tailored specifically for teenage boys that are athletes, connecting biblical principles to sports, competition, teamwork, and character development'
 };
 // =====================================================
 
@@ -73,8 +82,17 @@ async function runTest(): Promise<void> {
   console.log(`   Requirements: ${studyConfig.requirements}`);
 
   // Create test request matching TypeScript interface
+  // Generate a proper UUID for testing
+  const generateTestUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const testRequest: StudyGenerationRequest = {
-    id: `test-request-${Date.now()}`,
+    id: generateTestUUID(),
     user_id: 'd98e14b8-b606-4e08-a19e-d1685f3ff09c',
     title: studyConfig.title,
     topic: studyConfig.topic,

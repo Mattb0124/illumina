@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { authenticateToken } from '../middleware/auth.js';
 import { AIService } from '../services/aiService.js';
 import type { StudyGenerationRequest } from '../types/index.js';
@@ -39,7 +40,7 @@ router.post('/generate-study', authenticateToken, async (req: Request, res: Resp
 
     // Create request object
     const request: StudyGenerationRequest = {
-      id: `req-${Date.now()}`,
+      id: randomUUID(),
       user_id: req.user?.id || 'anonymous',
       title,
       topic,

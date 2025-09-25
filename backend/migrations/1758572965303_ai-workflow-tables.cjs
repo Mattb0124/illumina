@@ -1,14 +1,8 @@
-/**
- * @type {import('node-pg-migrate').ColumnDefinitions | undefined}
- */
-export const shorthands = undefined;
+/* eslint-disable camelcase */
 
-/**
- * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @param run {() => void | undefined}
- * @returns {Promise<void> | void}
- */
-export const up = (pgm) => {
+exports.shorthands = undefined;
+
+exports.up = pgm => {
   // Study generation requests table
   pgm.createTable('study_generation_requests', {
     id: {
@@ -296,12 +290,7 @@ export const up = (pgm) => {
   pgm.createIndex('bible_verse_validations', 'cache_expires_at');
 };
 
-/**
- * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @param run {() => void | undefined}
- * @returns {Promise<void> | void}
- */
-export const down = (pgm) => {
+exports.down = pgm => {
   // Drop tables in reverse order due to foreign key dependencies
   pgm.dropTable('bible_verse_validations');
   pgm.dropTable('workflow_state');
